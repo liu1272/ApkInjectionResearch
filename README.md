@@ -107,6 +107,47 @@ public class ShellService extends Service {
 
 ---
 
+#### 3. 错误日志分析
+当完成上面的操作但是打开会报错的时候可以用 adb 连接真机或者虚拟机来提取错误日志 `adb logcat -v time *:E >C:\log.log`
+
+例如我在对另一个 apk 注入代码的时候会闪退，我们把错误日志提取出来，直接找到 `beginning of crash` 开始分析
+
+其实这里很明显意思就是 MainActivity 的 onCreate 方法中寄存器类型发生错乱
+
+因为原本声明的 .locals 11 数量要大于用到的最大寄存器编号（如 v11 就要 .locals 12）
+
+并且 onCreate 方法后续代码里，v0还被当作 MainActivity 的 this 对象或 int 用。
+
+```log
+--------- beginning of crash
+06-05 15:20:00.156 E/AndroidRuntime( 4017): FATAL EXCEPTION: main
+06-05 15:20:00.156 E/AndroidRuntime( 4017): Process: dev.anilbeesetti.nextplayer, PID: 4017
+06-05 15:20:00.156 E/AndroidRuntime( 4017): java.lang.VerifyError: Verifier rejected class dev.anilbeesetti.nextplayer.MainActivity: void dev.anilbeesetti.nextplayer.MainActivity.onCreate(android.os.Bundle) failed to verify: void dev.anilbeesetti.nextplayer.MainActivity.onCreate(android.os.Bundle): [0xE] 'this' argument 'Precise Reference: dev.anilbeesetti.nextplayer.ShellRunnable' not instance of 'Precise Reference: dev.anilbeesetti.nextplayer.MainActivity' (declaration of 'dev.anilbeesetti.nextplayer.MainActivity' appears in /data/app/~~Fm2FWSDlprIBhBCsWywQoQ==/dev.anilbeesetti.nextplayer-sf2NpCwE-CCvByUGT0kA5w==/base.apk)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at java.lang.Class.newInstance(Native Method)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.AppComponentFactory.instantiateActivity(AppComponentFactory.java:95)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.Instrumentation.newActivity(Instrumentation.java:1291)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:3648)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:3931)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.servertransaction.LaunchActivityItem.execute(LaunchActivityItem.java:103)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.servertransaction.TransactionExecutor.executeCallbacks(TransactionExecutor.java:135)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:95)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2294)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.os.Handler.dispatchMessage(Handler.java:106)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.os.Looper.loopOnce(Looper.java:201)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.os.Looper.loop(Looper.java:288)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at android.app.ActivityThread.main(ActivityThread.java:8060)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at java.lang.reflect.Method.invoke(Native Method)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:571)
+06-05 15:20:00.156 E/AndroidRuntime( 4017): 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1091)
+```
+总结一下就是：
+1. .locals 数量要大于你用到的最大寄存器编号
+2. 不要把 v0、v1 等 this/int 类型寄存器用来存对象
+
+至此，传统 Android 框架的 apk 应该都可以通过手动修改来注入代码了，接下来有空再玩玩 Flutter 。
+
+---
+
 ### 未来的研究方向
 现在也只实现了这一个传统的 onCreate() 注入方式，但是在 Flutter 应用中， UI 由 Flutter 引擎渲染，MainActivity 只是一个原生容器。
 
