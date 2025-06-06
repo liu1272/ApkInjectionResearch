@@ -13,6 +13,18 @@
 
 ---
 
+### 工具使用
+**前置环境：** java、[apktool.jar](https://github.com/iBotPeaches/Apktool)
+**开始使用：** 
+1. 在 .jar 文件同级目录下打开 cmd 输入命令 `java -jar ApkInjection-v1.0-jar-with-dependencies.jar` 。
+![image](https://github.com/user-attachments/assets/1d1229d6-a50e-438a-afd4-4e0589d80bd1)
+
+2. 按照指引输入路径并耐心等待。
+3. 若安装时报错签名错误/无签名/无法安装，请尝试使用 keytool 生成keystore，然后使用 [dx-signer.jar](https://github.com/dingxiangtech/dx-signer) 重新签名。
+4. 如果有任何问题请在 Issues 中讨论。
+
+---
+
 ### 对研究内容的理解
 #### 1. 操作流程
 1. **反编译 APK**  
@@ -92,7 +104,7 @@ public class ShellService extends Service {
 
 #### 3. 代码优化
 因为一开始注入的时候经常出现闪退或者连接断开的问题，所以使用了 sleep 来减慢数据处理的速度（虽然好像没啥影响，纯折腾qaq）
-所以可以把下面这些代码优化掉，当然要是不想删可以把 `const-wide/16 v9, 1` 的延迟改低，或者设置缓冲区来读取多个字节。
+所以可以把下面这些代码优化掉，当然要是不想删可以把 `const-wide/16 v9, 1` 的延迟改低，或者设置缓冲区来读取多个字节。（**已经实现**）
 
 ```smali
     :sleep
@@ -144,13 +156,9 @@ public class ShellService extends Service {
 1. .locals 数量要大于你用到的最大寄存器编号
 2. 不要把 v0、v1 等 this/int 类型寄存器用来存对象
 
-至此，传统 Android 框架的 apk 应该都可以通过手动修改来注入代码了，接下来有空再玩玩 Flutter 。
+至此，传统 Android 框架的 apk 应该都可以通过手动修改来注入代码了，至于 Flutter 框架的注入也与上文的原理和操作十分类似，感兴趣的可以自己跟 AI 研究一下。
 
 ---
 
 ### 未来的研究方向
-现在也只实现了这一个传统的 onCreate() 注入方式，但是在 Flutter 应用中， UI 由 Flutter 引擎渲染，MainActivity 只是一个原生容器。
-
-此时传统的 onCreate() 主要初始化 Flutter 环境，而不是应用主逻辑的入口点。所以还要不断尝试是在 <init> 构造器中注入还是在 F()、 onCreate() 方法中更合适。
-
 **除了实现代码注入，还可以玩一些骚操作，类似于 MSF 里面的 `android/meterpreter/reverse_tcp` 模块，可以实现加密传输、反射调用、动态加载、持久化、甚至可以集成一些权限提升的功能。**
